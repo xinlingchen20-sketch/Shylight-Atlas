@@ -806,6 +806,17 @@ export default function CreateEditInfluencerModal({
                         </button>
                       );
                     })}
+                    {personas.filter(p => !PRESET_PERSONAS.includes(p)).map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handleToggleTag("personas", p)}
+                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-violet-950/80 text-violet-300 border-violet-700 hover:bg-violet-900/40 flex items-center gap-1"
+                        title="点击删除该自定义标签"
+                      >
+                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -822,7 +833,7 @@ export default function CreateEditInfluencerModal({
                           onClick={() => handleToggleTag("categories", p)}
                           className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer ${
                             contains 
-                              ? "bg-teal-905 bg-teal-950/60 text-teal-300 border-teal-850" 
+                              ? "bg-teal-950/60 text-teal-300 border-teal-850" 
                               : "bg-[#0F0F11] text-zinc-400 border-zinc-800 hover:border-zinc-700"
                           }`}
                         >
@@ -830,6 +841,17 @@ export default function CreateEditInfluencerModal({
                         </button>
                       );
                     })}
+                    {categories.filter(p => !PRESET_CATEGORIES.includes(p)).map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handleToggleTag("categories", p)}
+                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-teal-950/80 text-teal-300 border-teal-700 hover:bg-teal-900/40 flex items-center gap-1"
+                        title="点击删除该自定义标签"
+                      >
+                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -854,6 +876,17 @@ export default function CreateEditInfluencerModal({
                         </button>
                       );
                     })}
+                    {scenarios.filter(p => !PRESET_SCENARIOS.includes(p)).map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handleToggleTag("scenarios", p)}
+                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-sky-950/80 text-sky-300 border-sky-700 hover:bg-sky-900/40 flex items-center gap-1"
+                        title="点击删除该自定义标签"
+                      >
+                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -878,6 +911,17 @@ export default function CreateEditInfluencerModal({
                         </button>
                       );
                     })}
+                    {abilities.filter(p => !PRESET_ABILITIES.includes(p)).map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handleToggleTag("abilities", p)}
+                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-emerald-950/80 text-emerald-300 border-emerald-700 hover:bg-emerald-900/40 flex items-center gap-1"
+                        title="点击删除该自定义标签"
+                      >
+                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -902,6 +946,17 @@ export default function CreateEditInfluencerModal({
                         </button>
                       );
                     })}
+                    {strategies.filter(p => !PRESET_STRATEGIES.includes(p)).map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => handleToggleTag("strategies", p)}
+                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-amber-950/80 text-amber-300 border-amber-700 hover:bg-[#1C1917] flex items-center gap-1"
+                        title="点击删除该自定义标签"
+                      >
+                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -927,6 +982,12 @@ export default function CreateEditInfluencerModal({
                       type="text"
                       value={customTagText}
                       onChange={e => setCustomTagText(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddCustomTag(e);
+                        }
+                      }}
                       placeholder="自定义标签名称，如: '夫妻档居家'"
                       className="text-xs border border-zinc-850 border-zinc-800 rounded-lg px-3 py-1.5 flex-1 bg-[#0F0F11] text-zinc-200 placeholder-zinc-600 focus:outline-none"
                     />
