@@ -279,53 +279,52 @@ export default function App() {
     <div className="min-h-screen bg-[#0A0A0B] text-zinc-100 antialiased font-sans flex flex-col">
       
       {/* 1. TOP UTILITY INFORMATION BAR (Identity & Simulation Settings) */}
-      <div className="w-full bg-[#0F0F11] text-zinc-400 py-2 px-6 flex items-center justify-between text-xs font-semibold select-none border-b border-zinc-800">
-        <div className="flex items-center space-x-2">
-          <Shield size={14} className="text-emerald-400" />
-          <span>正在构建与修改: <strong className="text-zinc-100">Shylight Atlas (达人多维搜索与沉淀系统)</strong></span>
-          <span className="hidden md:inline px-1.5 py-0.5 bg-zinc-800 text-[10px] text-zinc-500 rounded">
-            API is server-side protected
-          </span>
+      <div className="w-full bg-[#0F0F11] text-zinc-400 py-1.5 px-4 sm:px-6 flex items-center justify-between text-xs font-semibold select-none border-b border-zinc-800 gap-2">
+        <div className="flex items-center space-x-1.5 shrink-0">
+          <Shield size={13} className="text-emerald-400 shrink-0" />
+          <span className="hidden sm:inline">正在构建与修改: <strong className="text-zinc-100 font-bold">Shylight Atlas (达人多维搜索与沉淀系统)</strong></span>
+          <span className="sm:hidden font-extrabold text-zinc-200">Shylight Atlas</span>
         </div>
 
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
           {/* Admin Simulation Toggle (UX bypass mechanism) */}
-          <div className="flex items-center space-x-2 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">
-            <span className="text-zinc-300 font-medium">✨ 模拟 Admin 特级模式</span>
+          <div className="flex items-center space-x-1 sm:space-x-2 bg-zinc-900 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-zinc-800">
+            <span className="text-zinc-300 font-medium text-[10px] sm:text-xs">✨ Admin 模式</span>
             <input 
               type="checkbox" 
               checked={isSimulateAdmin}
               onChange={e => setIsSimulateAdmin(e.target.checked)}
-              className="w-3.5 h-3.5 text-blue-605 text-blue-600 rounded bg-zinc-800 border-zinc-700 focus:ring-emerald-500 cursor-pointer"
+              className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 rounded bg-zinc-800 border-zinc-700 cursor-pointer"
             />
-            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${isSimulateAdmin ? "bg-emerald-500/20 text-emerald-300" : "bg-zinc-800 text-zinc-500"}`}>
-              {isSimulateAdmin ? "Admin ON" : "Member View"}
+            <span className={`px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold uppercase tracking-wider ${isSimulateAdmin ? "bg-emerald-500/20 text-emerald-300" : "bg-zinc-800 text-zinc-500"}`}>
+              {isSimulateAdmin ? "ON" : "OFF"}
             </span>
           </div>
 
           {/* Real Auth Details */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5">
             {isAuthLoading ? (
-              <span className="text-zinc-500">检测鉴权中...</span>
+              <span className="text-zinc-500 text-[10px]">加载中</span>
             ) : currentUser ? (
-              <div className="flex items-center space-x-2 bg-zinc-900 px-3 py-1 bg-zinc-800/60 rounded-full border border-zinc-800 text-[11px]">
+              <div className="flex items-center space-x-1.5 bg-zinc-900 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-zinc-800 text-[10px] sm:text-[11px]">
                 {currentUser.photoURL && (
-                  <img src={currentUser.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-4.5 h-4.5 rounded-full" />
+                  <img src={currentUser.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-4 h-4 rounded-full animate-none" />
                 )}
-                <span className="text-zinc-300 max-w-[130px] truncate">{currentUser.email}</span>
-                <span className="text-blue-400 font-bold bg-blue-900/10 px-1 py-0.2 rounded text-[9px] border border-blue-900/20">
+                <span className="text-zinc-300 max-w-[50px] sm:max-w-[120px] truncate">{currentUser.email}</span>
+                <span className="text-blue-400 font-bold bg-blue-900/10 px-1 py-0.2 rounded text-[8px] sm:text-[9px] border border-blue-900/20">
                   {userRole}
                 </span>
-                <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 transition-colors ml-1 cursor-pointer" title="退出登录">
-                  <LogOut size={12} />
+                <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 transition-colors ml-0.5 cursor-pointer" title="退出登录">
+                  <LogOut size={10} />
                 </button>
               </div>
             ) : (
               <button
                 onClick={handleLogin}
-                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-full text-white transition-colors text-[11px] font-semibold cursor-pointer"
+                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-white transition-colors text-[10px] sm:text-[11px] font-semibold cursor-pointer whitespace-nowrap"
               >
-                <LogIn size={11} /> 谷歌账户授权 (Google login)
+                <LogIn size={10} />
+                <span>谷歌授权</span>
               </button>
             )}
           </div>
@@ -334,13 +333,13 @@ export default function App() {
 
       {/* 2. MAIN NAVIGATION HEADER CONTAINER */}
       <header className="bg-[#0F0F11] border-b border-zinc-800 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-row items-center justify-between gap-2">
           
           {/* LOGO AREA */}
-          <div className="flex items-center space-x-4 cursor-pointer select-none" onClick={() => setSelectedInfluencer(null)}>
-            <div className="relative flex items-center filter drop-shadow-[0_0_12px_rgba(14,165,233,0.35)]">
+          <div className="flex items-center space-x-2 sm:space-x-4 cursor-pointer select-none animate-none" onClick={() => setSelectedInfluencer(null)}>
+            <div className="relative flex items-center filter drop-shadow-[0_0_12px_rgba(14,165,233,0.35)] shrink-0">
               {/* EON CREATIVE Brand SVG */}
-              <svg viewBox="0 0 200 80" className="h-10 w-auto text-white" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg viewBox="0 0 200 80" className="h-7 sm:h-10 w-auto text-white" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   {/* Soft blue glowing nebulous outer glow */}
                   <radialGradient id="nebulaGlow" cx="50%" cy="50%" r="50%">
@@ -387,12 +386,12 @@ export default function App() {
                 <text x="131" y="74" fill="#E4E4E7" fontSize="5.5" fontWeight="950" letterSpacing="2.1" fontFamily="sans-serif" opacity="0.95">CREATIVE</text>
               </svg>
             </div>
-            <div className="border-l border-zinc-800 pl-4 h-9 flex flex-col justify-center">
-              <h1 className="text-sm font-extrabold text-zinc-100 tracking-tight flex items-center gap-1.5 leading-none">
+            <div className="border-l border-zinc-800 pl-2.5 sm:pl-4 h-7 sm:h-9 flex flex-col justify-center">
+              <h1 className="text-xs sm:text-sm font-extrabold text-zinc-100 tracking-tight flex items-center gap-1 sm:gap-1.5 leading-none">
                 Shylight Atlas
-                <span className="bg-blue-950/60 text-blue-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-blue-900/40">MVP v1.0</span>
+                <span className="bg-blue-950/60 text-blue-400 text-[8px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold border border-blue-900/40 whitespace-nowrap">MVP</span>
               </h1>
-              <p className="text-xs text-zinc-500 mt-1.5 leading-none">达人多维智能检索与合作履约沉淀系统</p>
+              <p className="text-[10px] text-zinc-500 mt-1 leading-none hidden sm:block">达人多维智能检索与合作履约沉淀系统</p>
             </div>
           </div>
 
@@ -420,13 +419,13 @@ export default function App() {
           </div>
 
           {/* Add Influencer Button if Admin */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button
               onClick={loadDatabase}
-              className="p-2 border border-zinc-800 rounded-lg text-zinc-400 hover:bg-zinc-850 transition cursor-pointer"
+              className="p-1.5 sm:p-2 border border-zinc-800 rounded-lg text-zinc-400 hover:bg-zinc-850 transition cursor-pointer"
               title="重新加载数据库"
             >
-              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
             </button>
 
             {userRole === "Admin" && (
@@ -436,10 +435,10 @@ export default function App() {
                   setEditingInfluencer(null);
                   setIsInfluencerModalOpen(true);
                 }}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-4 py-2 rounded-lg inline-flex items-center gap-1.5 shadow-md shadow-blue-900/20 transition-all duration-200 cursor-pointer"
+                className="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg inline-flex items-center gap-1 sm:gap-1.5 shadow-md shadow-blue-900/20 transition-all duration-200 cursor-pointer whitespace-nowrap"
               >
-                <Plus size={16} />
-                录入达人 (Add Creator)
+                <Plus size={13} className="sm:size-4" />
+                <span>录入达人</span>
               </button>
             )}
           </div>
