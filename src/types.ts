@@ -62,4 +62,4 @@ export interface CooperationRecord {
   internalNotes: string;
 }
 
-export type AuthRole = "Admin" | "Member";
+export type AuthRole = "Admin" | "Member" | "Visitor";
