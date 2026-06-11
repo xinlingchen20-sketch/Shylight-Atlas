@@ -7,7 +7,7 @@ import {
   PRESET_ABILITIES, 
   PRESET_STRATEGIES 
 } from "../initialData";
-import { X, Save, Plus, Trash } from "lucide-react";
+import { X, Save, Plus, Trash, Upload, Image, Loader2 } from "lucide-react";
 
 interface CreateEditInfluencerModalProps {
   isOpen: boolean;
@@ -29,6 +29,40 @@ export default function CreateEditInfluencerModal({
   // Form State
   const [name, setName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // File validation
+    if (!file.type.startsWith("image/")) {
+      setUploadError("只支持上传图片格式文件 (JPG/PNG/WEBP)");
+      return;
+    }
+    
+    if (file.size > 1.5 * 1024 * 1024) { // 1.5MB limit
+      setUploadError("图片文件大小不能超过 1.5MB");
+      return;
+    }
+
+    setUploadError(null);
+    setIsUploading(true);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result && typeof event.target.result === "string") {
+        setAvatarUrl(event.target.result);
+      }
+      setIsUploading(false);
+    };
+    reader.onerror = () => {
+      setUploadError("图片读取失败");
+      setIsUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
   const [country, setCountry] = useState("United States");
   const [city, setCity] = useState("");
   const [email, setEmail] = useState("");
@@ -343,14 +377,77 @@ export default function CreateEditInfluencerModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-zinc-400 mb-1">头像图片链接 (Avatar URL)</label>
-                  <input 
-                    type="url" 
-                    value={avatarUrl} 
-                    onChange={e => setAvatarUrl(e.target.value)} 
-                    placeholder="https://example.com/photo.jpg" 
-                    className="w-full text-sm px-3 py-2 border rounded-lg border-zinc-800 bg-[#0F0F11] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-700"
-                  />
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">
+                    达人头像 (Avatar Image)
+                  </label>
+                  
+                  <div className="flex items-center space-x-4 bg-[#0F0F11] border border-zinc-805 border-zinc-800 rounded-xl p-4">
+                    {/* Circle Image Preview */}
+                    <div className="relative w-14 h-14 rounded-full border border-zinc-700 overflow-hidden flex items-center justify-center bg-zinc-90 w-14 h-14 shrink-0 bg-zinc-900">
+                      {isUploading ? (
+                        <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                      ) : avatarUrl ? (
+                        <img 
+                          src={avatarUrl} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <Image className="w-6 h-6 text-zinc-600" />
+                      )}
+                    </div>
+
+                    {/* Direct Upload Area */}
+                    <div className="flex-1 space-y-1">
+                      <div className="relative group border border-dashed border-zinc-800 hover:border-zinc-700 rounded-lg p-2.5 text-center transition-colors flex flex-col items-center justify-center cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <Upload size={14} className="text-zinc-500 group-hover:text-zinc-300 mb-1 transition-colors" />
+                        <span className="text-[11px] font-semibold text-zinc-300 group-hover:text-zinc-100 transition-colors">
+                          点击或拖拽上传新头像
+                        </span>
+                        <span className="text-[9px] text-zinc-500 select-none">
+                          支持 JPG / PNG / WEBP (最高 1.5MB)
+                        </span>
+                      </div>
+                      
+                      {uploadError && (
+                        <p className="text-[10px] text-red-400 font-medium">
+                          ⚠️ {uploadError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Optional Fallback URL prompt */}
+                  <div className="mt-2 flex justify-between items-center px-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const fallbackUrl = prompt("请输入头像图片链接 (Enter Image URL):", avatarUrl);
+                        if (fallbackUrl !== null) {
+                          setAvatarUrl(fallbackUrl);
+                        }
+                      }}
+                      className="text-[10px] text-zinc-500 hover:text-zinc-300 underline transition-colors cursor-pointer"
+                    >
+                      或通过图片链接输入 (Enter Image URL)
+                    </button>
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setAvatarUrl("")}
+                        className="text-[10px] text-rose-500 hover:text-rose-400 transition-colors cursor-pointer"
+                      >
+                        清空头像
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">

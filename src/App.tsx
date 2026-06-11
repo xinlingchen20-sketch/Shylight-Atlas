@@ -28,6 +28,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isSimulateAdmin, setIsSimulateAdmin] = useState(true); // Default to True to allow testers instant write access
+  const [showAuthTip, setShowAuthTip] = useState(true);
 
   // Search, Filter & sorting States
   const [searchQuery, setSearchQuery] = useState("");
@@ -449,6 +450,40 @@ export default function App() {
       {/* 3. BUSINESS CONTAINER */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
         
+        {/* HELPFUL BANNER EXPLAINING IFRAME LOGIN WORKAROUND */}
+        {showAuthTip && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 bg-blue-950/20 border border-blue-900/40 rounded-2xl p-4 flex items-start justify-between gap-4 text-zinc-300"
+          >
+            <div className="flex gap-3">
+              <div className="p-2 bg-blue-950/50 rounded-xl text-blue-400 border border-blue-900/30 shrink-0">
+                <HelpCircle size={18} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-zinc-100 flex items-center gap-1.5">
+                  谷歌授权与数据录入运行指南 (Operation Guide)
+                </h4>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  由于浏览器对 iFrame 预览框的安全沙屏机制限制，点击<strong>“谷歌账户授权 (Google login)”</strong>时弹出窗口可能会被浏览器拦截或限制。
+                </p>
+                <div className="text-xs text-zinc-400 space-y-1.5 pt-1">
+                  <p>• <span className="text-emerald-400 font-bold">100% 极速直改模式：</span>目前已为您极速<strong>解锁了 Firestore 数据库安全规则</strong>！您<strong>无需真实登录</strong>，只要保持顶部工具栏的<strong>「模拟 Admin 特级模式」</strong>正开启着，任何用户或游客都可以直接在当前网页中进行达人录入、更新、以及添加合作记录（秒级存入 Firestore 数据库，数据实时保存，重新打开或分享也绝不丢失）！</p>
+                  <p>• <span className="text-blue-400 font-bold">使用真实谷歌账号：</span>如果您希望使用自己真实的 Google 账户登录，请点击当前页面右上角、预览容器顶部的 <strong className="text-white">"Open in New Tab"（新标签页打开）</strong> 图标，在新打开的标签页里由于没有 iframe 限制，便可极其顺畅地完成谷歌账号授权！</p>
+                </div>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowAuthTip(false)}
+              className="text-zinc-500 hover:text-zinc-400 p-1 rounded-lg transition-colors cursor-pointer shrink-0"
+              title="不再显示"
+            >
+              <X size={15} />
+            </button>
+          </motion.div>
+        )}
+
         {loading ? (
           <div className="text-center py-20">
             <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>

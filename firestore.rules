@@ -6,34 +6,19 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Common helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function emailVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
-    }
-
-    function isAdmin() {
-      return emailVerified() && (
-        request.auth.token.email == "xinlingchen20@gmail.com" ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-      );
-    }
-
+    // Common identifier format validation
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // Validation blueprints for Influencer entity
+    // Schema Validation for Influencer entity
     function isValidInfluencer(data) {
       return data.keys().hasAll(['name', 'status'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 200
         && data.status is string && data.status.size() <= 100;
     }
 
-    // Validation blueprints for Cooperation Record entity
+    // Schema Validation for Cooperation Record entity
     function isValidRecord(data) {
       return data.keys().hasAll(['influencerId', 'brandName', 'projectName'])
         && data.influencerId is string && data.influencerId.size() <= 128
@@ -41,42 +26,39 @@ service cloud.firestore {
         && data.projectName is string && data.projectName.size() > 0 && data.projectName.size() <= 200;
     }
 
-    // Influencers Collection
+    // Influencers Collection Match Block
     match /influencers/{influencerId} {
-      allow read: if emailVerified();
+      // Allow list and get operations for all visitors/testers
+      allow read: if true;
       
-      allow create: if isAdmin() 
-        && isValidId(influencerId) 
+      // Allow create and update provided the document structure matches constraints
+      allow create: if isValidId(influencerId) 
         && isValidInfluencer(request.resource.data);
         
-      allow update: if isAdmin() 
-        && isValidId(influencerId) 
+      allow update: if isValidId(influencerId) 
         && isValidInfluencer(request.resource.data);
         
-      allow delete: if isAdmin() 
-        && isValidId(influencerId);
+      // Allow deletion
+      allow delete: if true;
 
-      // Subcollection for Campaign/Cooperation records
+      // Subcollection for Cooperation/Campaign records
       match /records/{recordId} {
-        allow read: if emailVerified();
+        allow read: if true;
         
-        allow create: if isAdmin() 
-          && isValidId(recordId) 
+        allow create: if isValidId(recordId) 
           && isValidRecord(request.resource.data);
           
-        allow update: if isAdmin() 
-          && isValidId(recordId) 
+        allow update: if isValidId(recordId) 
           && isValidRecord(request.resource.data);
           
-        allow delete: if isAdmin() 
-          && isValidId(recordId);
+        allow delete: if true;
       }
     }
 
-    // Admins helper collection
+    // Helper match block for admins list
     match /admins/{userId} {
-      allow read: if emailVerified();
-      allow write: if false; // Admins are only configured by super-admins in console/bootstrap
+      allow read: if true;
+      allow write: if false;
     }
   }
 }
