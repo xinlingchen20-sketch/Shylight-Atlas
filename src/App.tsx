@@ -936,9 +936,9 @@ export default function App() {
                                   {p}
                                 </span>
                               ))}
-                              {(inf.categories?.length + inf.scenarios?.length + inf.personas?.length > 5) && (
+                              {(((inf.categories?.length || 0) + (inf.scenarios?.length || 0) + (inf.personas?.length || 0)) > 5) && (
                                 <span className="text-[9px] text-zinc-500 self-center font-medium">
-                                  +{inf.categories.length + inf.scenarios.length + inf.personas.length - 5}
+                                  +{((inf.categories?.length || 0) + (inf.scenarios?.length || 0) + (inf.personas?.length || 0)) - 5}
                                 </span>
                               )}
                             </div>

@@ -4,7 +4,18 @@ import { getFirestore } from "firebase/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); /* CRITICAL: The app will break without this line */
+let dbInstance;
+try {
+  if (firebaseConfig.firestoreDatabaseId) {
+    dbInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  } else {
+    dbInstance = getFirestore(app);
+  }
+} catch (e) {
+  console.error("Failed to initialize Firestore with custom database ID, falling back:", e);
+  dbInstance = getFirestore(app);
+}
+export const db = dbInstance;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
