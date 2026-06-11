@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Catch-all default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function emailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return emailVerified() && (
+        request.auth.token.email == "xinlingchen20@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Validation blueprints for Influencer entity
+    function isValidInfluencer(data) {
+      return data.keys().hasAll(['name', 'status'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.status is string && data.status.size() <= 100;
+    }
+
+    // Validation blueprints for Cooperation Record entity
+    function isValidRecord(data) {
+      return data.keys().hasAll(['influencerId', 'brandName', 'projectName'])
+        && data.influencerId is string && data.influencerId.size() <= 128
+        && data.brandName is string && data.brandName.size() > 0 && data.brandName.size() <= 200
+        && data.projectName is string && data.projectName.size() > 0 && data.projectName.size() <= 200;
+    }
+
+    // Influencers Collection
+    match /influencers/{influencerId} {
+      allow read: if emailVerified();
+      
+      allow create: if isAdmin() 
+        && isValidId(influencerId) 
+        && isValidInfluencer(request.resource.data);
+        
+      allow update: if isAdmin() 
+        && isValidId(influencerId) 
+        && isValidInfluencer(request.resource.data);
+        
+      allow delete: if isAdmin() 
+        && isValidId(influencerId);
+
+      // Subcollection for Campaign/Cooperation records
+      match /records/{recordId} {
+        allow read: if emailVerified();
+        
+        allow create: if isAdmin() 
+          && isValidId(recordId) 
+          && isValidRecord(request.resource.data);
+          
+        allow update: if isAdmin() 
+          && isValidId(recordId) 
+          && isValidRecord(request.resource.data);
+          
+        allow delete: if isAdmin() 
+          && isValidId(recordId);
+      }
+    }
+
+    // Admins helper collection
+    match /admins/{userId} {
+      allow read: if emailVerified();
+      allow write: if false; // Admins are only configured by super-admins in console/bootstrap
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Shylight Atlas",
+  "description": "达人多维搜索与沉淀系统 - 整合社媒达人生态数据库，并统一沉淀合作履约经验的内部决策终端 (Shylight Atlas)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

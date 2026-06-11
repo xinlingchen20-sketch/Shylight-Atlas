@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "influencer": {
+      "title": "Influencer",
+      "description": "An influencer stored in our database",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "country": { "type": "string" },
+        "city": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "agency": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["已合作", "已报价未合作", "沟通中", "待开发", "不合作"] },
+        "rateCard": { "type": "number" },
+        "dealPrice": { "type": "number" },
+        "instagram": { "type": "object" },
+        "tiktok": { "type": "object" },
+        "youtube": { "type": "object" },
+        "personas": { "type": "array" },
+        "scenarios": { "type": "array" },
+        "categories": { "type": "array" },
+        "abilities": { "type": "array" },
+        "strategies": { "type": "array" },
+        "recommendedDirections": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "status"]
+    },
+    "cooperation_record": {
+      "title": "Cooperation Record",
+      "description": "Cooperation history with an influencer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "influencerId": { "type": "string" },
+        "brandName": { "type": "string" },
+        "projectName": { "type": "string" },
+        "date": { "type": "string" },
+        "platform": { "type": "string" },
+        "link": { "type": "string" },
+        "screenshotUrl": { "type": "string" },
+        "rateCard": { "type": "number" },
+        "dealPrice": { "type": "number" },
+        "views": { "type": "number" },
+        "likes": { "type": "number" },
+        "comments": { "type": "number" },
+        "customerReview": { "type": "string" },
+        "internalNotes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["influencerId", "brandName", "projectName"]
+    }
+  },
+  "firestore": {
+    "/influencers/{influencerId}": {
+      "schema": "influencer",
+      "description": "Influencer details including platforms and tags"
+    },
+    "/influencers/{influencerId}/records/{recordId}": {
+      "schema": "cooperation_record",
+      "description": "Historical cooperation records for a specific influencer"
+    }
+  }
+}
