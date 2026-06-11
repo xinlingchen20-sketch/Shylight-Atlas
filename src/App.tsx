@@ -7,17 +7,14 @@ import {
   ensureSeedLoaded 
 } from "./services";
 import { Influencer, CooperationStatus, AuthRole } from "./types";
-import { auth, googleProvider } from "./firebase";
-import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { exportToExcelCSV, formatCompactNumber, formatCurrency } from "./utils";
 import CreateEditInfluencerModal from "./components/CreateEditInfluencerModal";
 import InfluencerDetailView from "./components/InfluencerDetailView";
-import AuthModal from "./components/AuthModal";
 import ExcelImportModal from "./components/ExcelImportModal";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Search, SlidersHorizontal, ArrowUpDown, Download, Plus, Sparkles, Star, Users, CheckCircle,
-  Eye, RefreshCw, LogIn, LogOut, Check, Shield, HelpCircle, X, ChevronRight, Globe, Layers, Award, Trash2,
+  Eye, RefreshCw, LogIn, LogOut, Check, Shield, ShieldAlert, HelpCircle, X, ChevronRight, Globe, Layers, Award, Trash2,
   FileSpreadsheet
 } from "lucide-react";
 
@@ -29,11 +26,7 @@ export default function App() {
 
 
 
-  // Authentication State
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [showAuthTip, setShowAuthTip] = useState(true);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  // UI & Excel triggers
   const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
 
   // Search, Filter & sorting States
@@ -57,11 +50,8 @@ export default function App() {
   const [isInfluencerModalOpen, setIsInfluencerModalOpen] = useState(false);
   const [editingInfluencer, setEditingInfluencer] = useState<Influencer | null>(null);
 
-  // Determine current active role
-  const userRole: AuthRole = useMemo(() => {
-    if (!currentUser) return "Visitor";
-    return "Admin";
-  }, [currentUser]);
+  // All operations are fully unlocked for any visitor (Admin override)
+  const userRole: AuthRole = "Admin";
 
   // Load database and seed if empty
   const loadDatabase = async () => {
@@ -77,33 +67,10 @@ export default function App() {
     }
   };
 
-  // Auth monitoring listener
+  // Load database on mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setIsAuthLoading(false);
-    });
     loadDatabase();
-
-    return () => unsubscribe();
   }, []);
-
-  const handleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error: any) {
-      console.error("Login failed:", error);
-      alert("登录失败：" + error.message);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
 
   const handleSaveInfluencer = async (data: Omit<Influencer, "id" | "createdAt" | "updatedAt">) => {
     try {
@@ -283,59 +250,20 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0B] text-zinc-100 antialiased font-sans flex flex-col">
-      {/* 1. TOP UTILITY INFORMATION BAR (Identity & Auth Settings) */}
+      {/* 1. TOP UTILITY INFORMATION BAR (Identity & Enterprise Settings) */}
       <div className="w-full bg-[#0F0F11] text-zinc-400 py-1.5 px-4 sm:px-6 flex flex-wrap items-center justify-between text-xs font-semibold select-none border-b border-zinc-800 gap-2">
         <div className="flex items-center space-x-1.5 shrink-0">
-          <Shield size={13} className="text-blue-400 shrink-0" />
-          <span className="hidden lg:inline">Shylight Atlas 管理中心: <strong className="text-zinc-100 font-bold">达人多维搜索与协作沉淀系统</strong></span>
+          <Shield size={13} className="text-blue-450 text-blue-400 shrink-0" />
+          <span className="hidden lg:inline">Shylight Atlas 管理中心: <strong className="text-zinc-100 font-bold">已无缝解锁全站管理机制，无需验证即可操作</strong></span>
           <span className="lg:hidden text-zinc-100 font-bold">Shylight Atlas</span>
         </div>
 
-        <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
-          {/* Mode Indicator & Auth buttons */}
-          <div className="flex items-center space-x-2 bg-zinc-950 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-zinc-900 text-[10px] sm:text-xs">
-            {currentUser ? (
-              <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>管理员模式 (只读已解锁)</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 text-amber-500 font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span>游客模式 (不可增加及删除)</span>
-              </div>
-            )}
-          </div>
-
-          {/* Real Auth Details */}
-          <div className="flex items-center space-x-1.5">
-            {isAuthLoading ? (
-              <span className="text-zinc-500 text-[10px]">加载中</span>
-            ) : currentUser ? (
-              <div className="flex items-center space-x-1.5 bg-zinc-900 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border border-zinc-800 text-[10px] sm:text-[11px]">
-                {currentUser.photoURL ? (
-                  <img src={currentUser.photoURL} alt="User Avatar" referrerPolicy="no-referrer" className="w-4 h-4 rounded-full animate-none" />
-                ) : (
-                  <div className="w-4 h-4 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center font-bold text-[8px] uppercase">{currentUser.email?.charAt(0) || "U"}</div>
-                )}
-                <span className="text-zinc-350 text-zinc-300 max-w-[90px] sm:max-w-[140px] truncate">{currentUser.displayName || currentUser.email}</span>
-                <span className="text-blue-405 text-blue-400 font-bold bg-blue-900/10 px-1 py-0.2 rounded text-[8px] sm:text-[9px] border border-blue-900/20">
-                  {userRole}
-                </span>
-                <button onClick={handleLogout} className="text-rose-400 hover:text-rose-300 transition-colors ml-1 cursor-pointer" title="退出登录">
-                  <LogOut size={10} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-full text-white transition-all text-[11px] font-bold cursor-pointer whitespace-nowrap shadow-md shadow-blue-900/10 active:scale-95"
-              >
-                <LogIn size={11} />
-                <span>登录/注册管理员</span>
-              </button>
-            )}
-          </div>
+        <div className="flex items-center space-x-2 sm:space-x-4 shrink-0 text-zinc-500 text-[10px]">
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-zinc-400 font-bold">免密管理模式已开启</span>
+          </span>
+          <span className="border-l border-zinc-800 pl-2">直连状态: 运行良好</span>
         </div>
       </div>
 
@@ -469,39 +397,7 @@ export default function App() {
       {/* 3. BUSINESS CONTAINER */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
         
-        {/* HELPFUL BANNER EXPLAINING IFRAME LOGIN WORKAROUND */}
-        {showAuthTip && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 bg-blue-950/20 border border-blue-900/40 rounded-2xl p-4 flex items-start justify-between gap-4 text-zinc-300"
-          >
-            <div className="flex gap-3">
-              <div className="p-2 bg-blue-950/50 rounded-xl text-blue-400 border border-blue-900/30 shrink-0">
-                <HelpCircle size={18} />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-sm font-bold text-zinc-100 flex items-center gap-1.5">
-                  管理员认证与 Excel 批量录入运行指南 (Operation Guide)
-                </h4>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  系统已集成<strong>实时 Firebase 认证与 Excel 一键识别录入系统</strong>。目前游客拥有流畅的<b>全量只读预览权限</b>，以便快速探索；管理员则拥有无限制写入修改特权。
-                </p>
-                <div className="text-xs text-zinc-400 space-y-1.5 pt-1">
-                  <p>• <span className="text-emerald-405 text-emerald-450 text-emerald-400 font-bold">管理员一键注册与登录：</span>您可以直接点击右上角<strong>“登录/注册管理员”</strong>，极速创建您的专属管理员账号或登录，登录后即可完美解锁人工录入、删除、编辑、以及 Excel 批量识别等全栈修改功能！</p>
-                  <p>• <span className="text-blue-400 font-bold">iFrame 安全拦截沙箱限制：</span>由于部分浏览器默认拦截 iFrame 内的谷歌授权弹窗，若需使用第三方谷歌 SSO 登录，强烈建议您点击预览窗口顶部的 <strong className="text-white">"Open in New Tab"（新标签页打开）</strong> 按钮，体验更高效纯粹的交互过程！</p>
-                </div>
-              </div>
-            </div>
-            <button 
-              onClick={() => setShowAuthTip(false)}
-              className="text-zinc-500 hover:text-zinc-400 p-1 rounded-lg transition-colors cursor-pointer shrink-0"
-              title="不再显示"
-            >
-              <X size={15} />
-            </button>
-          </motion.div>
-        )}
+
 
         {loading ? (
           <div className="text-center py-20">
@@ -1014,15 +910,7 @@ export default function App() {
         onSave={handleSaveInfluencer}
       />
 
-      {/* Administrator Authentication Trigger Dialog Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={() => {
-          setIsAuthModalOpen(false);
-          loadDatabase();
-        }}
-      />
+
 
       {/* Excel Sheet Parsing Import Trigger Dialog Modal */}
       <ExcelImportModal

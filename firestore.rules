@@ -60,5 +60,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+
+    // Custom Users Collection for the self-built Auth System
+    match /custom_users/{email} {
+      allow read, write: if true;
+    }
   }
 }
