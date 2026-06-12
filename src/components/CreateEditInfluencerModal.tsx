@@ -14,13 +14,19 @@ interface CreateEditInfluencerModalProps {
   onClose: () => void;
   influencer: Influencer | null; // null means create mode
   onSave: (data: Omit<Influencer, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  customTags?: { id: string; type: string; value: string }[];
+  onAddCustomTagGlobal?: (type: string, value: string) => Promise<void>;
+  onDeleteCustomTagGlobal?: (id: string) => Promise<void>;
 }
 
 export default function CreateEditInfluencerModal({
   isOpen,
   onClose,
   influencer,
-  onSave
+  onSave,
+  customTags = [],
+  onAddCustomTagGlobal,
+  onDeleteCustomTagGlobal
 }: CreateEditInfluencerModalProps) {
   const [activeTab, setActiveTab] = useState<"basic" | "platforms" | "tags">("basic");
   const [loading, setLoading] = useState(false);
@@ -108,6 +114,47 @@ export default function CreateEditInfluencerModal({
   // Custom added tags
   const [customTagType, setCustomTagType] = useState<"personas" | "scenarios" | "categories" | "abilities" | "strategies">("categories");
   const [customTagText, setCustomTagText] = useState("");
+
+  // Merge loaded persistent custom tags with default presets for rendering
+  const mergedPersonas = React.useMemo(() => {
+    const list = [...PRESET_PERSONAS];
+    customTags.filter(t => t.type === "personas").forEach(t => {
+      if (!list.includes(t.value)) list.push(t.value);
+    });
+    return list;
+  }, [customTags]);
+
+  const mergedCategories = React.useMemo(() => {
+    const list = [...PRESET_CATEGORIES];
+    customTags.filter(t => t.type === "categories").forEach(t => {
+      if (!list.includes(t.value)) list.push(t.value);
+    });
+    return list;
+  }, [customTags]);
+
+  const mergedScenarios = React.useMemo(() => {
+    const list = [...PRESET_SCENARIOS];
+    customTags.filter(t => t.type === "scenarios").forEach(t => {
+      if (!list.includes(t.value)) list.push(t.value);
+    });
+    return list;
+  }, [customTags]);
+
+  const mergedAbilities = React.useMemo(() => {
+    const list = [...PRESET_ABILITIES];
+    customTags.filter(t => t.type === "abilities").forEach(t => {
+      if (!list.includes(t.value)) list.push(t.value);
+    });
+    return list;
+  }, [customTags]);
+
+  const mergedStrategies = React.useMemo(() => {
+    const list = [...PRESET_STRATEGIES];
+    customTags.filter(t => t.type === "strategies").forEach(t => {
+      if (!list.includes(t.value)) list.push(t.value);
+    });
+    return list;
+  }, [customTags]);
 
   // Sync state on edit open
   useEffect(() => {
@@ -206,10 +253,15 @@ export default function CreateEditInfluencerModal({
     }
   };
 
-  const handleAddCustomTag = (e: React.FormEvent) => {
+  const handleAddCustomTag = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customTagText.trim()) return;
     const cleanTag = customTagText.trim();
+    
+    // Save persistently to Firestore so it remains loaded
+    if (onAddCustomTagGlobal) {
+      await onAddCustomTagGlobal(customTagType, cleanTag);
+    }
     
     switch (customTagType) {
       case "personas": if (!personas.includes(cleanTag)) setPersonas([...personas, cleanTag]); break;
@@ -789,34 +841,39 @@ export default function CreateEditInfluencerModal({
                 <div className="bg-[#131316] border border-zinc-850 p-4 rounded-xl space-y-2">
                   <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">人设标签 (Persona)</label>
                   <div className="flex flex-wrap gap-1.5">
-                    {PRESET_PERSONAS.map(p => {
+                    {mergedPersonas.map(p => {
                       const contains = personas.includes(p);
+                      const isPreset = PRESET_PERSONAS.includes(p);
                       return (
                         <button
                           key={p}
                           type="button"
                           onClick={() => handleToggleTag("personas", p)}
-                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer ${
+                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
                             contains 
                               ? "bg-violet-950/60 text-violet-300 border-violet-850" 
                               : "bg-[#0F0F11] text-zinc-400 border-zinc-800 hover:border-zinc-700"
                           }`}
                         >
-                          {p}
+                          <span>{p}</span>
+                          {!isPreset && (
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const tagObj = customTags.find(t => t.type === "personas" && t.value === p);
+                                if (tagObj && onDeleteCustomTagGlobal) {
+                                  onDeleteCustomTagGlobal(tagObj.id);
+                                }
+                              }}
+                              className="ml-1.5 text-zinc-500 hover:text-rose-450 font-bold text-sm leading-none"
+                              title="从选项池永久删除此自定义标签"
+                            >
+                              &times;
+                            </span>
+                          )}
                         </button>
                       );
                     })}
-                    {personas.filter(p => !PRESET_PERSONAS.includes(p)).map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => handleToggleTag("personas", p)}
-                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-violet-950/80 text-violet-300 border-violet-700 hover:bg-violet-900/40 flex items-center gap-1"
-                        title="点击删除该自定义标签"
-                      >
-                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
-                      </button>
-                    ))}
                   </div>
                 </div>
 
@@ -824,34 +881,39 @@ export default function CreateEditInfluencerModal({
                 <div className="bg-[#131316] border border-zinc-850 p-4 rounded-xl space-y-2">
                   <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">品类标签 (Category)</label>
                   <div className="flex flex-wrap gap-1.5">
-                    {PRESET_CATEGORIES.map(p => {
+                    {mergedCategories.map(p => {
                       const contains = categories.includes(p);
+                      const isPreset = PRESET_CATEGORIES.includes(p);
                       return (
                         <button
                           key={p}
                           type="button"
                           onClick={() => handleToggleTag("categories", p)}
-                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer ${
+                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
                             contains 
                               ? "bg-teal-950/60 text-teal-300 border-teal-850" 
                               : "bg-[#0F0F11] text-zinc-400 border-zinc-800 hover:border-zinc-700"
                           }`}
                         >
-                          {p}
+                          <span>{p}</span>
+                          {!isPreset && (
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const tagObj = customTags.find(t => t.type === "categories" && t.value === p);
+                                if (tagObj && onDeleteCustomTagGlobal) {
+                                  onDeleteCustomTagGlobal(tagObj.id);
+                                }
+                              }}
+                              className="ml-1.5 text-zinc-500 hover:text-rose-450 font-bold text-sm leading-none"
+                              title="从选项池永久删除此自定义标签"
+                            >
+                              &times;
+                            </span>
+                          )}
                         </button>
                       );
                     })}
-                    {categories.filter(p => !PRESET_CATEGORIES.includes(p)).map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => handleToggleTag("categories", p)}
-                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-teal-950/80 text-teal-300 border-teal-700 hover:bg-teal-900/40 flex items-center gap-1"
-                        title="点击删除该自定义标签"
-                      >
-                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
-                      </button>
-                    ))}
                   </div>
                 </div>
 
@@ -859,34 +921,39 @@ export default function CreateEditInfluencerModal({
                 <div className="bg-[#131316] border border-zinc-850 p-4 rounded-xl space-y-2">
                   <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">场景标签 (Scenario)</label>
                   <div className="flex flex-wrap gap-1.5">
-                    {PRESET_SCENARIOS.map(p => {
+                    {mergedScenarios.map(p => {
                       const contains = scenarios.includes(p);
+                      const isPreset = PRESET_SCENARIOS.includes(p);
                       return (
                         <button
                           key={p}
                           type="button"
                           onClick={() => handleToggleTag("scenarios", p)}
-                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer ${
+                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
                             contains 
                               ? "bg-sky-950/60 text-sky-300 border-sky-850" 
                               : "bg-[#0F0F11] text-zinc-400 border-zinc-800 hover:border-zinc-700"
                           }`}
                         >
-                          {p}
+                          <span>{p}</span>
+                          {!isPreset && (
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const tagObj = customTags.find(t => t.type === "scenarios" && t.value === p);
+                                if (tagObj && onDeleteCustomTagGlobal) {
+                                  onDeleteCustomTagGlobal(tagObj.id);
+                                }
+                              }}
+                              className="ml-1.5 text-zinc-500 hover:text-rose-450 font-bold text-sm leading-none"
+                              title="从选项池永久删除此自定义标签"
+                            >
+                              &times;
+                            </span>
+                          )}
                         </button>
                       );
                     })}
-                    {scenarios.filter(p => !PRESET_SCENARIOS.includes(p)).map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => handleToggleTag("scenarios", p)}
-                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-sky-950/80 text-sky-300 border-sky-700 hover:bg-sky-900/40 flex items-center gap-1"
-                        title="点击删除该自定义标签"
-                      >
-                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
-                      </button>
-                    ))}
                   </div>
                 </div>
 
@@ -894,34 +961,39 @@ export default function CreateEditInfluencerModal({
                 <div className="bg-[#131316] border border-zinc-850 p-4 rounded-xl space-y-2">
                   <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">能力标签 (Ability)</label>
                   <div className="flex flex-wrap gap-1.5">
-                    {PRESET_ABILITIES.map(p => {
+                    {mergedAbilities.map(p => {
                       const contains = abilities.includes(p);
+                      const isPreset = PRESET_ABILITIES.includes(p);
                       return (
                         <button
                           key={p}
                           type="button"
                           onClick={() => handleToggleTag("abilities", p)}
-                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer ${
+                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
                             contains 
                               ? "bg-emerald-950/60 text-emerald-300 border-emerald-850" 
                               : "bg-[#0F0F11] text-zinc-400 border-zinc-800 hover:border-zinc-700"
                           }`}
                         >
-                          {p}
+                          <span>{p}</span>
+                          {!isPreset && (
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const tagObj = customTags.find(t => t.type === "abilities" && t.value === p);
+                                if (tagObj && onDeleteCustomTagGlobal) {
+                                  onDeleteCustomTagGlobal(tagObj.id);
+                                }
+                              }}
+                              className="ml-1.5 text-zinc-500 hover:text-rose-450 font-bold text-sm leading-none"
+                              title="从选项池永久删除此自定义标签"
+                            >
+                              &times;
+                            </span>
+                          )}
                         </button>
                       );
                     })}
-                    {abilities.filter(p => !PRESET_ABILITIES.includes(p)).map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => handleToggleTag("abilities", p)}
-                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-emerald-950/80 text-emerald-300 border-emerald-700 hover:bg-emerald-900/40 flex items-center gap-1"
-                        title="点击删除该自定义标签"
-                      >
-                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
-                      </button>
-                    ))}
                   </div>
                 </div>
 
@@ -929,34 +1001,39 @@ export default function CreateEditInfluencerModal({
                 <div className="bg-[#131316] border border-zinc-850 p-4 rounded-xl space-y-2">
                   <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider">营销打法标签 (Marketing Strategy)</label>
                   <div className="flex flex-wrap gap-1.5">
-                    {PRESET_STRATEGIES.map(p => {
+                    {mergedStrategies.map(p => {
                       const contains = strategies.includes(p);
+                      const isPreset = PRESET_STRATEGIES.includes(p);
                       return (
                         <button
                           key={p}
                           type="button"
                           onClick={() => handleToggleTag("strategies", p)}
-                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer ${
+                          className={`px-3 py-1 text-xs rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
                             contains 
                               ? "bg-amber-950/60 text-amber-300 border-amber-850" 
                               : "bg-[#0F0F11] text-zinc-400 border-zinc-800 hover:border-zinc-700"
                           }`}
                         >
-                          {p}
+                          <span>{p}</span>
+                          {!isPreset && (
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const tagObj = customTags.find(t => t.type === "strategies" && t.value === p);
+                                if (tagObj && onDeleteCustomTagGlobal) {
+                                  onDeleteCustomTagGlobal(tagObj.id);
+                                }
+                              }}
+                              className="ml-1.5 text-zinc-500 hover:text-rose-450 font-bold text-sm leading-none"
+                              title="从选项池永久删除此自定义标签"
+                            >
+                              &times;
+                            </span>
+                          )}
                         </button>
                       );
                     })}
-                    {strategies.filter(p => !PRESET_STRATEGIES.includes(p)).map(p => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => handleToggleTag("strategies", p)}
-                        className="px-3 py-1 text-xs rounded-full border transition-all cursor-pointer bg-amber-950/80 text-amber-300 border-amber-700 hover:bg-[#1C1917] flex items-center gap-1"
-                        title="点击删除该自定义标签"
-                      >
-                        {p} <X size={12} className="opacity-60 hover:opacity-100" />
-                      </button>
-                    ))}
                   </div>
                 </div>
 

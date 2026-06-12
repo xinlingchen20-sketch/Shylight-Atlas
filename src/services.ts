@@ -184,3 +184,50 @@ export async function deleteCooperationRecord(influencerId: string, recordId: st
     return handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
+
+// 9. Get Custom Tags from Firestore
+export async function getCustomTags(): Promise<{ id: string; type: string; value: string }[]> {
+  const path = "custom_tags";
+  try {
+    const snap = await getDocs(collection(db, path));
+    const list: any[] = [];
+    snap.forEach((docSnap) => {
+      list.push({
+        id: docSnap.id,
+        ...docSnap.data()
+      });
+    });
+    return list;
+  } catch (error) {
+    return handleFirestoreError(error, OperationType.LIST, path);
+  }
+}
+
+// 10. Save/Create Custom Tag
+export async function createCustomTag(type: string, value: string): Promise<string> {
+  const path = "custom_tags";
+  const customId = "tag_" + Math.random().toString(36).substring(2, 11);
+  try {
+    const docRef = doc(db, path, customId);
+    const payload = {
+      id: customId,
+      type,
+      value: value.trim()
+    };
+    await setDoc(docRef, payload);
+    return customId;
+  } catch (error) {
+    return handleFirestoreError(error, OperationType.CREATE, `${path}/${customId}`);
+  }
+}
+
+// 11. Delete a Custom Tag
+export async function deleteCustomTag(id: string): Promise<void> {
+  const path = `custom_tags/${id}`;
+  try {
+    const docRef = doc(db, "custom_tags", id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    return handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}

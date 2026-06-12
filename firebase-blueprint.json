@@ -54,6 +54,17 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["influencerId", "brandName", "projectName"]
+    },
+    "custom_tag": {
+      "title": "Custom Tag",
+      "description": "Custom user-defined tag that is preserved across sessions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "value": { "type": "string" }
+      },
+      "required": ["type", "value"]
     }
   },
   "firestore": {
@@ -64,6 +75,10 @@
     "/influencers/{influencerId}/records/{recordId}": {
       "schema": "cooperation_record",
       "description": "Historical cooperation records for a specific influencer"
+    },
+    "/custom_tags/{tagId}": {
+      "schema": "custom_tag",
+      "description": "User-configured dynamic tags that persist across sessions"
     }
   }
 }

@@ -4,18 +4,22 @@ import {
   createInfluencer, 
   updateInfluencer, 
   deleteInfluencer, 
-  ensureSeedLoaded 
+  ensureSeedLoaded,
+  getCustomTags,
+  createCustomTag,
+  deleteCustomTag
 } from "./services";
 import { Influencer, CooperationStatus, AuthRole } from "./types";
 import { exportToExcelCSV, formatCompactNumber, formatCurrency } from "./utils";
 import CreateEditInfluencerModal from "./components/CreateEditInfluencerModal";
+import ManageTagsModal from "./components/ManageTagsModal";
 import InfluencerDetailView from "./components/InfluencerDetailView";
 import ExcelImportModal from "./components/ExcelImportModal";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Search, SlidersHorizontal, ArrowUpDown, Download, Plus, Sparkles, Star, Users, CheckCircle,
   Eye, RefreshCw, LogIn, LogOut, Check, Shield, ShieldAlert, HelpCircle, X, ChevronRight, Globe, Layers, Award, Trash2,
-  FileSpreadsheet
+  FileSpreadsheet, Settings2
 } from "lucide-react";
 
 export default function App() {
@@ -49,9 +53,43 @@ export default function App() {
   // Modals state
   const [isInfluencerModalOpen, setIsInfluencerModalOpen] = useState(false);
   const [editingInfluencer, setEditingInfluencer] = useState<Influencer | null>(null);
+  const [isManageTagsOpen, setIsManageTagsOpen] = useState(false);
+  const [manageTagsType, setManageTagsType] = useState<"categories" | "scenarios">("categories");
 
   // All operations are fully unlocked for any visitor (Admin override)
   const userRole: AuthRole = "Admin";
+
+  // Dynamic User Custom Tags State
+  const [customTags, setCustomTags] = useState<{ id: string; type: string; value: string }[]>([]);
+
+  // Add custom tag global handler
+  const handleAddCustomTagGlobal = async (type: string, value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const exists = customTags.some(t => t.type === type && t.value.toLowerCase() === trimmed.toLowerCase());
+    if (exists) return;
+
+    try {
+      await createCustomTag(type, trimmed);
+      // reload tags
+      const tagsList = await getCustomTags();
+      setCustomTags(tagsList);
+    } catch (err: any) {
+      console.error("Failed to save custom tag:", err);
+    }
+  };
+
+  // Delete custom tag global handler
+  const handleDeleteCustomTagGlobal = async (id: string) => {
+    try {
+      await deleteCustomTag(id);
+      // reload tags
+      const tagsList = await getCustomTags();
+      setCustomTags(tagsList);
+    } catch (err: any) {
+      console.error("Failed to delete custom tag:", err);
+    }
+  };
 
   // Load database and seed if empty
   const loadDatabase = async () => {
@@ -60,6 +98,10 @@ export default function App() {
       await ensureSeedLoaded();
       const list = await getInfluencers();
       setInfluencers(list);
+      
+      // Load custom tags
+      const tagsList = await getCustomTags();
+      setCustomTags(tagsList);
     } catch (err) {
       console.error("Failed to load db data:", err);
     } finally {
@@ -114,15 +156,23 @@ export default function App() {
   // Compute all available tags for hot tag clouds
   const allCategories = useMemo(() => {
     const counts: { [key: string]: number } = {};
+    // Pre-populate with our persistent custom tags so they show up even with 0 counts
+    customTags.filter(t => t.type === "categories").forEach(t => {
+      counts[t.value] = 0;
+    });
     influencers.forEach(i => i.categories?.forEach(tag => counts[tag] = (counts[tag] || 0) + 1));
     return Object.entries(counts).sort((a,b) => b[1] - a[1]);
-  }, [influencers]);
+  }, [influencers, customTags]);
 
   const allScenarios = useMemo(() => {
     const counts: { [key: string]: number } = {};
+    // Pre-populate with persistent custom scenarios
+    customTags.filter(t => t.type === "scenarios").forEach(t => {
+      counts[t.value] = 0;
+    });
     influencers.forEach(i => i.scenarios?.forEach(tag => counts[tag] = (counts[tag] || 0) + 1));
     return Object.entries(counts).sort((a,b) => b[1] - a[1]);
-  }, [influencers]);
+  }, [influencers, customTags]);
 
   // Execute filters on search lists
   const filteredInfluencers = useMemo(() => {
@@ -442,15 +492,29 @@ export default function App() {
                   
                   {/* HOT CATEGORIES WIDGET */}
                   <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3.5">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
-                      <Layers size={14} className="text-blue-400" />
-                      热门品类热词
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
+                        <Layers size={14} className="text-blue-400" />
+                        热门品类热词
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setManageTagsType("categories");
+                          setIsManageTagsOpen(true);
+                        }}
+                        className="text-[11px] text-teal-400 hover:text-teal-300 font-bold flex items-center gap-1 bg-teal-500/5 hover:bg-teal-500/10 border border-teal-500/10 hover:border-teal-500/20 px-2 py-0.5 rounded-md transition cursor-pointer select-none"
+                        title="管理品类标签库"
+                      >
+                        <Settings2 size={11} />
+                        <span>管理</span>
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
                       {allCategories.length === 0 ? (
                         <p className="text-xs text-zinc-500">暂无品类数据</p>
                       ) : (
-                        allCategories.slice(0, 10).map(([tag, count]) => {
+                        allCategories.map(([tag, count]) => {
                           const active = selectedCategories.includes(tag);
                           return (
                             <button
@@ -475,15 +539,29 @@ export default function App() {
 
                   {/* HOT SCENARIOS WIDGET */}
                   <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-3.5">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
-                      <Globe size={14} className="text-blue-400" />
-                      热门投放/应用场景
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
+                        <Globe size={14} className="text-blue-400" />
+                        热门投放/应用场景
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setManageTagsType("scenarios");
+                          setIsManageTagsOpen(true);
+                        }}
+                        className="text-[11px] text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1 bg-sky-500/5 hover:bg-sky-500/10 border border-sky-500/10 hover:border-sky-500/20 px-2 py-0.5 rounded-md transition cursor-pointer select-none"
+                        title="管理应用场景库"
+                      >
+                        <Settings2 size={11} />
+                        <span>管理</span>
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
                       {allScenarios.length === 0 ? (
                         <p className="text-xs text-zinc-500">暂无场景数据</p>
                       ) : (
-                        allScenarios.slice(0, 10).map(([tag, count]) => {
+                        allScenarios.map(([tag, count]) => {
                           const active = selectedScenarios.includes(tag);
                           return (
                             <button
@@ -908,6 +986,19 @@ export default function App() {
         onClose={() => setIsInfluencerModalOpen(false)}
         influencer={editingInfluencer}
         onSave={handleSaveInfluencer}
+        customTags={customTags}
+        onAddCustomTagGlobal={handleAddCustomTagGlobal}
+        onDeleteCustomTagGlobal={handleDeleteCustomTagGlobal}
+      />
+
+      {/* Dynamic Tags Management Modal Overlay */}
+      <ManageTagsModal
+        isOpen={isManageTagsOpen}
+        onClose={() => setIsManageTagsOpen(false)}
+        initialType={manageTagsType}
+        customTags={customTags}
+        onAddCustomTagGlobal={handleAddCustomTagGlobal}
+        onDeleteCustomTagGlobal={handleDeleteCustomTagGlobal}
       />
 
 

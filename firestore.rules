@@ -65,5 +65,19 @@ service cloud.firestore {
     match /custom_users/{email} {
       allow read, write: if true;
     }
+
+    // Schema Validation for Custom Tag entity
+    function isValidCustomTag(data) {
+      return data.keys().hasAll(['type', 'value'])
+        && data.type is string && data.type.size() > 0 && data.type.size() <= 100
+        && data.value is string && data.value.size() > 0 && data.value.size() <= 100;
+    }
+
+    // Dynamic User-created persistent tags list
+    match /custom_tags/{tagId} {
+      allow read: if true;
+      allow create, update: if isValidId(tagId) && isValidCustomTag(request.resource.data);
+      allow delete: if true;
+    }
   }
 }
