@@ -7,14 +7,17 @@ import {
   ensureSeedLoaded,
   getCustomTags,
   createCustomTag,
-  deleteCustomTag
+  deleteCustomTag,
+  createCooperationRecord,
+  getCooperationRecords
 } from "./services";
-import { Influencer, CooperationStatus, AuthRole } from "./types";
+import { Influencer, CooperationStatus, AuthRole, CooperationRecord } from "./types";
 import { exportToExcelCSV, formatCompactNumber, formatCurrency } from "./utils";
 import CreateEditInfluencerModal from "./components/CreateEditInfluencerModal";
 import ManageTagsModal from "./components/ManageTagsModal";
 import InfluencerDetailView from "./components/InfluencerDetailView";
 import ExcelImportModal from "./components/ExcelImportModal";
+import AddEditRecordModal from "./components/AddEditRecordModal";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Search, SlidersHorizontal, ArrowUpDown, Download, Plus, Sparkles, Star, Users, CheckCircle,
@@ -55,12 +58,15 @@ export default function App() {
   const [editingInfluencer, setEditingInfluencer] = useState<Influencer | null>(null);
   const [isManageTagsOpen, setIsManageTagsOpen] = useState(false);
   const [manageTagsType, setManageTagsType] = useState<"categories" | "scenarios">("categories");
+  const [isCoopRecordModalOpen, setIsCoopRecordModalOpen] = useState(false);
+  const [coopRecordInfluencerId, setCoopRecordInfluencerId] = useState<string | null>(null);
 
   // All operations are fully unlocked for any visitor (Admin override)
   const userRole: AuthRole = "Admin";
 
   // Dynamic User Custom Tags State
   const [customTags, setCustomTags] = useState<{ id: string; type: string; value: string }[]>([]);
+  const [coopRecords, setCoopRecords] = useState<{[influencerId: string]: CooperationRecord[]}>({});
 
   // Add custom tag global handler
   const handleAddCustomTagGlobal = async (type: string, value: string) => {
@@ -99,6 +105,23 @@ export default function App() {
       const list = await getInfluencers();
       setInfluencers(list);
       
+      // Fetch cooperation records for all influencers in parallel
+      const recordsPromises = list.map(async (inf) => {
+        try {
+          const recs = await getCooperationRecords(inf.id);
+          return { id: inf.id, recs };
+        } catch (e) {
+          console.error(`Failed to load cooperation records for influencer ${inf.id}:`, e);
+          return { id: inf.id, recs: [] };
+        }
+      });
+      const recordsResults = await Promise.all(recordsPromises);
+      const recordsMap: {[influencerId: string]: CooperationRecord[]} = {};
+      recordsResults.forEach(res => {
+        recordsMap[res.id] = res.recs;
+      });
+      setCoopRecords(recordsMap);
+
       // Load custom tags
       const tagsList = await getCustomTags();
       setCustomTags(tagsList);
@@ -128,6 +151,22 @@ export default function App() {
       await loadDatabase();
     } catch (err: any) {
       alert("操作失败! 错误原因: " + (err?.message || "权限不足"));
+    }
+  };
+
+  const handleSaveCoopRecordFromCard = async (data: Omit<CooperationRecord, "id" | "createdAt">) => {
+    if (!coopRecordInfluencerId) return;
+    try {
+      await createCooperationRecord(coopRecordInfluencerId, data);
+      
+      // If adding a cooperation record, automatically set the influencer's status to "已合作"
+      const currentInf = influencers.find(i => i.id === coopRecordInfluencerId);
+      if (currentInf && currentInf.status !== "已合作") {
+        await updateInfluencer(coopRecordInfluencerId, { status: "已合作" });
+      }
+      await loadDatabase();
+    } catch (err: any) {
+      alert("合作记录保存失败: " + (err?.message || "无写操作权限"));
     }
   };
 
@@ -476,6 +515,16 @@ export default function App() {
                     setInfluencers(list);
                     const fresh = list.find(i => i.id === selectedInfluencer.id);
                     if (fresh) setSelectedInfluencer(fresh);
+
+                    try {
+                      const recs = await getCooperationRecords(selectedInfluencer.id);
+                      setCoopRecords(prev => ({
+                        ...prev,
+                        [selectedInfluencer.id]: recs
+                      }));
+                    } catch (e) {
+                      console.error("Failed to sync records in onRefreshInfluencer:", e);
+                    }
                   }}
                 />
               </motion.div>
@@ -859,54 +908,88 @@ export default function App() {
                             {/* Core Performance KPI indicators */}
                             <div className="grid grid-cols-2 gap-2 text-center py-2 bg-[#0A0A0B] rounded-2xl border border-zinc-800/40">
                               <div>
-                                <span className="block text-[9px] font-bold text-zinc-500 uppercase">最大粉丝数</span>
-                                <span className="text-xs font-bold text-[#E4E4E7]">{formatCompactNumber(maxFollowers)}</span>
+                                <span className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wide">最大粉丝数</span>
+                                <span className="text-sm font-extrabold text-[#F4F4F5]">{formatCompactNumber(maxFollowers)}</span>
                               </div>
                               <div>
-                                <span className="block text-[9px] font-bold text-zinc-500 uppercase">最高互动率</span>
-                                <span className="text-xs font-bold text-[#E4E4E7]">{maxEr}%</span>
+                                <span className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wide">最高互动率</span>
+                                <span className="text-sm font-extrabold text-[#F4F4F5]">{maxEr}%</span>
                               </div>
                             </div>
 
                             {/* Platform indicators with mini icons */}
-                            <div className="flex items-center space-x-3 text-[10px] text-zinc-400 border-b border-zinc-850 pb-2">
+                            <div className="flex items-center space-x-3 text-xs text-zinc-400 border-b border-zinc-850 pb-2.5">
                               {inf.youtube?.profileUrl && (
                                 <span className="flex items-center gap-0.5" title="开设 YouTube 频道">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                  YT: <strong className="text-zinc-200">{formatCompactNumber(inf.youtube.followers)}</strong>
+                                  <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                                  YT: <strong className="text-zinc-200 font-bold">{formatCompactNumber(inf.youtube.followers)}</strong>
                                 </span>
                               )}
                               {inf.instagram?.profileUrl && (
                                 <span className="flex items-center gap-0.5" title="开设 Instagram 账号">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-pink-500"></span>
-                                  IG: <strong className="text-zinc-200">{formatCompactNumber(inf.instagram.followers)}</strong>
+                                  <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                                  IG: <strong className="text-zinc-200 font-bold">{formatCompactNumber(inf.instagram.followers)}</strong>
                                 </span>
                               )}
                               {inf.tiktok?.profileUrl && (
                                 <span className="flex items-center gap-0.5" title="开设 TikTok 渠道">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-                                  TK: <strong className="text-zinc-200">{formatCompactNumber(inf.tiktok.followers)}</strong>
+                                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                                  TK: <strong className="text-zinc-200 font-bold">{formatCompactNumber(inf.tiktok.followers)}</strong>
                                 </span>
                               )}
                             </div>
+
+                            {/* Cooperation Records block (Dynamic Display on Dashboard Card if they exist) */}
+                            {coopRecords[inf.id] && coopRecords[inf.id].length > 0 && (
+                              <div className="bg-[#0D0D10] p-3 rounded-2xl border border-zinc-800/50 space-y-2 select-none">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] uppercase tracking-wider font-bold text-zinc-400 flex items-center gap-1">
+                                    <CheckCircle size={10} className="text-emerald-500" />
+                                    合作案例 ({coopRecords[inf.id].length})
+                                  </span>
+                                </div>
+                                <div className="space-y-1.5 max-h-[110px] overflow-y-auto pr-0.5 custom-scrollbar">
+                                  {coopRecords[inf.id].map((rec) => (
+                                    <div key={rec.id} className="text-[10px] bg-[#121215]/90 p-2 rounded-xl border border-zinc-850/80 flex items-center justify-between gap-1.5">
+                                      <div className="min-w-0 flex-1">
+                                        <span className="font-bold text-zinc-200 block truncate leading-tight" title={`${rec.brandName} - ${rec.projectName}`}>
+                                          {rec.brandName} - {rec.projectName}
+                                        </span>
+                                        <span className="text-[9px] text-zinc-500 block truncate mt-0.5">
+                                          {rec.date} • {rec.platform}
+                                        </span>
+                                      </div>
+                                      <div className="text-right shrink-0">
+                                        <span className="text-[10px] font-bold text-emerald-400 block">
+                                          {formatCurrency(rec.dealPrice)}
+                                        </span>
+                                        <span className="text-[9px] text-zinc-500 block">
+                                          播放: {formatCompactNumber(rec.views)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
                             {/* Tags list (Categorised shown combined or clean) */}
                             <div className="flex flex-wrap gap-1 min-h-[50px] items-start">
                               {/* Categories (品类) */}
                               {inf.categories?.slice(0, 2).map(c => (
-                                <span key={c} className="px-2 py-0.5 text-[10px] font-semibold bg-teal-950/30 text-teal-450 text-teal-400 rounded border border-teal-900/30">
+                                <span key={c} className="px-2.5 py-1 text-[11px] font-semibold bg-teal-950/30 text-teal-400 rounded border border-teal-900/30">
                                   #{c}
                                 </span>
                               ))}
                               {/* Scenarios (场景) */}
                               {inf.scenarios?.slice(0, 2).map(s => (
-                                <span key={s} className="px-2 py-0.5 text-[10px] font-semibold bg-sky-950/30 text-sky-450 text-sky-400 rounded border border-sky-900/30">
+                                <span key={s} className="px-2.5 py-1 text-[11px] font-semibold bg-sky-950/30 text-sky-400 rounded border border-sky-900/30">
                                   #{s}
                                 </span>
                               ))}
                               {/* Personas (人设) */}
                               {inf.personas?.slice(0,1).map(p => (
-                                <span key={p} className="px-2 py-0.5 text-[10px] font-semibold bg-violet-950/30 text-violet-450 text-violet-400 rounded border border-violet-900/30">
+                                <span key={p} className="px-2.5 py-1 text-[11px] font-semibold bg-violet-950/30 text-violet-400 rounded border border-violet-900/30">
                                   {p}
                                 </span>
                               ))}
@@ -921,8 +1004,8 @@ export default function App() {
 
                           {/* Card bottom footer block */}
                           <div className="px-6 py-3.5 border-t border-zinc-800 bg-[#0F0F11]/90 flex items-center justify-between">
-                            <span className="text-[10px] font-medium text-zinc-400">
-                             实际低价: <strong className="text-blue-400 font-extrabold text-[11px] ml-0.5">{formatCurrency(inf.dealPrice)}</strong>
+                            <span className="text-xs font-semibold text-zinc-400">
+                             实际低价: <strong className="text-blue-400 font-extrabold text-sm ml-0.5">{formatCurrency(inf.dealPrice)}</strong>
                             </span>
                             
                             <div className="flex items-center space-x-1.5">
@@ -1012,6 +1095,20 @@ export default function App() {
           loadDatabase(); // Reload dataset when rows successfully enter the database
         }}
       />
+
+      {/* Quick Add Record Modal Overlay for Dashboard */}
+      {isCoopRecordModalOpen && coopRecordInfluencerId && (
+        <AddEditRecordModal
+          isOpen={isCoopRecordModalOpen}
+          onClose={() => {
+            setIsCoopRecordModalOpen(false);
+            setCoopRecordInfluencerId(null);
+          }}
+          record={null}
+          influencerId={coopRecordInfluencerId}
+          onSave={handleSaveCoopRecordFromCard}
+        />
+      )}
 
     </div>
   );

@@ -83,7 +83,8 @@ export default function InfluencerDetailView({
         // Create mode
         await createCooperationRecord(influencer.id, data);
       }
-      loadRecordsNow();
+      await loadRecordsNow();
+      onRefreshInfluencer();
     } catch (err: any) {
       alert("合作记录保存失败: " + (err?.message || "无写操作权限"));
     }
@@ -93,7 +94,8 @@ export default function InfluencerDetailView({
     if (!confirm("确定要删除这条合作记录吗？此操作无法撤销。")) return;
     try {
       await deleteCooperationRecord(influencer.id, recordId);
-      loadRecordsNow();
+      await loadRecordsNow();
+      onRefreshInfluencer();
     } catch (err: any) {
       alert("删除失败: " + (err?.message || "无删除操作权限"));
     }
